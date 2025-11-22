@@ -103,7 +103,7 @@ class ImageReviewer:
 
         self.image_label.focus_set()
 
-    def delete_image(self, event=None):
+    def delete_image(self):
         print("Delete key pressed")  # Debug to confirm key event
         if self.index >= len(self.image_paths):
             return "break"
@@ -124,7 +124,7 @@ class ImageReviewer:
         self.update_stats()
         return "break"
 
-    def keep_image(self, event=None):
+    def keep_image(self):
         print("Keep key pressed")  # Debug
         if self.index >= len(self.image_paths):
             return "break"
@@ -139,14 +139,14 @@ class ImageReviewer:
         self.update_stats()
         return "break"
 
-    def go_back(self, event=None):
+    def go_back(self):
         print("Undo key pressed")  # Debug
         if not self.history:
             return "break"
 
         action_tup = self.history.pop()
         if action_tup[0] == "delete":
-            action, deleted_path, original_path = action_tup
+            deleted_path, original_path = action_tup
             try:
                 os.rename(deleted_path, original_path)
                 print(f"Undo delete: Restored {os.path.basename(original_path)}")
@@ -155,7 +155,7 @@ class ImageReviewer:
             self.image_paths.insert(self.index, original_path)
             self.deleted_count -= 1
         else:
-            action, path = action_tup
+            path = action_tup
             self.kept_count -= 1
             self.index = max(0, self.index - 1)
             print(f"Undo keep: Going back to {os.path.basename(path)}")
