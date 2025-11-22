@@ -3,7 +3,6 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 from PIL import Image, ImageTk
 
-
 class ImageReviewer:
     def __init__(self, root):
         self.root = root
@@ -37,20 +36,16 @@ class ImageReviewer:
         self.history = []           # For undo (Z key)
         self.current_photo = None
 
-        # Key bindings — back to binding on label + ensure focus
-        bindings = {
-            "a": self.delete_image,
-            "A": self.delete_image,
-            "d": self.keep_image,
-            "D": self.keep_image,
-            "Left": self.delete_image,
-            "Right": self.keep_image,
-            "z": self.go_back,
-            "Z": self.go_back,
-            "BackSpace": self.go_back,
-        }
-        for key, func in bindings.items():
-            self.image_label.bind(f"<{key}>", func)
+        # Key bindings — use root.bind_all with proper event names for reliability
+        self.root.bind_all("<Key-a>", self.delete_image)
+        self.root.bind_all("<Key-A>", self.delete_image)
+        self.root.bind_all("<Key-d>", self.keep_image)
+        self.root.bind_all("<Key-D>", self.keep_image)
+        self.root.bind_all("<Left>", self.delete_image)
+        self.root.bind_all("<Right>", self.keep_image)
+        self.root.bind_all("<Key-z>", self.go_back)
+        self.root.bind_all("<Key-Z>", self.go_back)
+        self.root.bind_all("<BackSpace>", self.go_back)
 
         self.root.bind("<Configure>", self.on_resize)
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -82,7 +77,7 @@ class ImageReviewer:
         self.show_image()
         self.update_stats()
 
-        # Extra focus after dialog
+        # Extra focus
         self.root.lift()
         self.root.focus_force()
         self.image_label.focus_set()
@@ -90,6 +85,9 @@ class ImageReviewer:
     def show_image(self):
         if self.index >= len(self.image_paths):
             self.image_label.config(image="", text="All done!\nClose the window when ready.", fg="lime")
+            self.current_photo = None  # Clear reference
+            if hasattr(self, 'current_original'):
+                del self.current_original  # Clear original
             self.update_stats()
             return
 
@@ -106,7 +104,7 @@ class ImageReviewer:
         self.image_label.focus_set()
 
     def delete_image(self, event=None):
-        print("Delete key pressed")  # Debug
+        print("Delete key pressed")  # Debug to confirm key event
         if self.index >= len(self.image_paths):
             return "break"
 
@@ -192,12 +190,19 @@ class ImageReviewer:
         self.image_label.config(image=self.current_photo)
 
     def on_closing(self):
-        if messagebox.askyesno("Permanently Delete", "Delete the _deleted folder permanently?"):
-            import shutil
-            shutil.rmtree(self.deleted_folder)
-        if messagebox.askokcancel("Quit", "Are you sure you want to exit?"):
-            self.root.destroy()
+        delete_folder = False
+        if self.deleted_folder and os.path.exists(self.deleted_folder) and os.listdir(self.deleted_folder):
+            delete_folder = messagebox.askyesno("Permanently Delete", "Delete the _deleted folder permanently?")
+            if delete_folder:
+                try:
+                    import shutil
+                    shutil.rmtree(self.deleted_folder)
+                except Exception as e:
+                    messagebox.showerror("Error", f"Could not delete folder: {e}")
 
+        if messagebox.askokcancel("Quit", "Are you sure you want to exit?"):
+            self.root.quit()
+            self.root.destroy()
 
 if __name__ == "__main__":
     root = tk.Tk()
